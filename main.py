@@ -57,7 +57,7 @@ def search(cuil):
                 st.code(data, language="json")
                 st.divider()
                 
-                st.code(pprint.pformat(j), language="json")
+                #st.code(pprint.pformat(j), language="json")
                 
             st.info(f'**Total adeudado informado:** ${locale.format_string("%d", total_adeudado*1000, grouping=True, monetary=True)}')
 
