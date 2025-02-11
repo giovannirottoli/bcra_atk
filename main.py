@@ -34,10 +34,9 @@ def search(cuil):
             
             st.markdown(f'**Identificación:** { j.get("identificacion", "S/D") }')
             st.markdown(f'**Denominación:** {j.get("denominacion", "Sin datos")}')
-            st.subheader("Períodos", divider=True)
+            st.subheader("Deudas informadas", divider=True)
+            data = ""
             for periodo in  j.get('periodos', []):
-                st.markdown(f'Período: {periodo.get("periodo")}')
-                data = ""
                 for entidad in periodo.get('entidades', []):
                     name = entidad.get('entidad', 'Sin Nombre')
                     fecha = entidad.get('fechaSit1', 'Sin Fecha')
@@ -53,12 +52,9 @@ def search(cuil):
                     
                     line = f"{name if name else 'Sin Nombre'} - {fecha if fecha else 'Sin fecha'}: ${monto} - Situación {situacion} ({situacion_exp}) \n"
                     data = data + line
-
-                st.code(data, language="json")
-                st.divider()
-                
-                #st.code(pprint.pformat(j), language="json")
-                
+                    
+            st.code(data, language="json")
+                                
             st.info(f'**Total adeudado informado:** ${locale.format_string("%d", total_adeudado*1000, grouping=True, monetary=True)}')
 
 
