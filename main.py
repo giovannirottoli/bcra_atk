@@ -23,10 +23,14 @@ def search(cuil):
     else:
         url = f"https://api.bcra.gob.ar/CentralDeDeudores/v1.0/Deudas/{cuil}"
         response = rq.get(url, verify=False)
-        if response.status_code != 200:
-            st.error(f'Error al obtener info desde el BCRA: ' + pprint.pformat(response.content), icon="🚨")
+        
+        if response.status_code == 500:
+            st.error(f'Error al obtener info desde el BCRA por un problema interno \n ' + pprint.pformat(response.content), icon="🚨")
+        if response.status_code == 400:
+            st.error(f"Parámetro erróneo: Ingresar 11 dígitos para realizar la consulta.", icon="🚨")
+        if response.status_code == 404:
+            st.info(f"No se encuentran deudas para el CUIL especificado: {cuil}", icon="🕵️‍♂️" )
         else:
-            
             j = response.json()
             j = j['results']
             
