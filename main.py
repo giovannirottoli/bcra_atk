@@ -7,13 +7,45 @@ import locale
 
 def get_situacion(situacion):
     d = {
-        1: 'Normal',
-        2: 'Seguimiento especial',
-        3: 'Con problemas',
-        4: 'Alto riesgo',
+        1: 'Sin atraso',
+        2: 'Mora leve',
+        3: 'Mora extendida',
+        4: 'Mora Grave',
         5: 'Irrecuperable',    
     }
     return d.get(situacion, 'S/D')
+
+def get_data(j):
+    total_adeudado = 0
+    data = []
+    
+    for periodo in  j.get('periodos', []):
+        for entidad in periodo.get('entidades', []):
+            
+            entity = {}
+            
+            entity['name'] = entidad.get('entidad', 'S/D')
+            entity['monto'] = entidad.get('monto', 0) if entidad.get('monto', 0) else 0
+            entity['situacion'] = entidad.get('situacion', 'S/D')
+            entity['situacion_exp'] = get_situacion(entity['situacion'])
+            entity['periodo'] = periodo.get('periodo')
+            total_adeudado = total_adeudado + entity['monto']
+            
+            data.append(entity)
+    return sorted(data, key=lambda x: x['monto'], reverse=True)  , total_adeudado
+
+def get_lines(data):
+    lines = ""    
+    for record in data: 
+        monto = locale.format_string("%d", record['monto']*1000, grouping=True, monetary=True)
+        periodo = record['periodo']
+        if len(periodo) == 6:
+            periodo = f"{periodo[4:]}/{periodo[2:4]}"
+            
+        line = f"Situación {record['situacion']} ({record['situacion_exp']}) -  ${monto} -  {record['name'] if record['name'] else 'Sin Nombre'} - {periodo} \n"                 
+        lines = lines + line
+        
+    return lines
 
 def search(cuil):
     if len(cuil) != 11:
@@ -33,38 +65,30 @@ def search(cuil):
         else:
             j = response.json()
             j = j['results']
+                        
+            data, total_adeudado = get_data(j)
             
-            total_adeudado = 0
+            total_adeudado = locale.format_string("%d", total_adeudado*1000, grouping=True, monetary=True)
+            lines = get_lines(data) + f"Total adeudado informado: ${total_adeudado}"
             
-            st.markdown(f'**Identificación:** { j.get("identificacion", "S/D") }')
-            st.markdown(f'**Denominación:** {j.get("denominacion", "Sin datos")}')
-            st.subheader("Deudas informadas", divider=True)
-            data = ""
-            for periodo in  j.get('periodos', []):
-                for entidad in periodo.get('entidades', []):
-                    name = entidad.get('entidad', 'Sin Nombre')
-                    fecha = entidad.get('fechaSit1', 'Sin Fecha')
-                    monto = entidad.get('monto', 0) if entidad.get('monto', 0) else 0
-                    
-                    total_adeudado = total_adeudado + monto
-                    
-                    monto = locale.format_string("%d", monto*1000, grouping=True, monetary=True)
-                    situacion = entidad.get('situacion', 'S/D')
-                    situacion_exp = get_situacion(situacion)
-                    atraso = entidad.get('diasAtrasoPago', '')
-
-                    
-                    line = f"{name if name else 'Sin Nombre'} - {fecha if fecha else 'Sin fecha'}: ${monto} - Situación {situacion} ({situacion_exp}) \n"
-                    data = data + line
-                    
-            st.code(data, language="json")
-                                
-            st.info(f'**Total adeudado informado:** ${locale.format_string("%d", total_adeudado*1000, grouping=True, monetary=True)}')
-
+            col_1, col_2 = st.columns(2)
+            row2 = st.container()
+            
+            with col_1:
+                st.markdown(f'**Identificación:** { j.get("identificacion", "S/D") }')
+                st.markdown(f'**Denominación:** {j.get("denominacion", "Sin datos")}')
+            with col_2:
+                st.metric(label="Total adeudado", value=f"$ {total_adeudado}")
+            with row2:
+                st.subheader("Deudas informadas", divider=True)
+            
+                st.code(lines, language="json")
+            
 
 
 
 def main():
+    
     locale.setlocale(locale.LC_ALL, 'es_AR.utf8')
     st.title('Portal de deudas')
     
